@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>PEMDAS</title>
+
+	<!--
+	 PEMDAS Widget
+	 All code in the widget bundle (C) 2006-2013 Donkeyneering LLC.
+	 Visit http://www.donkeyengineering.com to file bug reports or feature requests.
+	-->
+
+	<!-- jQuery Library -->
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>  
+
+	<!-- Widget Controllers -->
+	<script type='text/javascript' src='controllers/interfaceController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDWidgetController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDFrontViewController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDKeypadViewController.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='controllers/PDHistoryViewController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDBackViewController.js' charset='utf-8'></script>
+
+	<!-- Other Controllers -->
+	<script type='text/javascript' src='controllers/PDPreferenceController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDUpdateController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDFormulaScrollerController.js' charset='utf-8'></script>
+	<script type='text/javascript' src='controllers/PDQuickLookController.js' charset='utf-8'></script>
+
+	<!-- Interface Classes -->	
+	<script type='text/javascript' src='classes/PDTextField.js' charset='utf-8'></script>
+	<script type='text/javascript' src='classes/PDSmallerClasses.js' charset='utf-8'></script>
+	<script type='text/javascript' src='classes/PDButton.js' charset='utf-8'></script>
+	<script type='text/javascript' src='classes/PDPopUpButton.js' charset='utf-8'></script>
+	<script type='text/javascript' src='classes/PDFunctionPadButton.js' charset='utf-8'></script>
+	<script type='text/javascript' src='classes/PDAlertView.js' charset='utf-8'></script>
+
+
+	<!-- Equation Controller -->
+	<script type='text/javascript' src='equationController/PDEquationController.js' charset='utf-8'></script> <!-- S/B Good -->
+
+	<!-- Manipulators -->
+	<script type='text/javascript' src='equationController/core/PDEHasher.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/core/PDECalculator.js' charset='utf-8'></script> <!-- S/B Good -->
+
+	<!-- Smaller Classes -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDBlock.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDBlockInfo.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDNumber.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDResult.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDPosition.js' charset='utf-8'></script> <!-- S/B Good -->
+	<script type='text/javascript' src='equationController/smallerClasses/PDVariable.js' charset='utf-8'></script> <!-- S/B Good -->
+
+	<!-- Number Formatter -->
+	<script type='text/javascript' src='equationController/formatting/PDNumberFormatter.js' charset='utf-8'></script> <!-- S/B Good -->
+
+	<!-- Apple Classes -->
+	<script type='text/javascript' src='/System/Library/WidgetResources/AppleClasses/AppleScrollArea.js' charset='utf-8'></script>
+	<script type='text/javascript' src='/System/Library/WidgetResources/AppleClasses/AppleScrollbar.js' charset='utf-8'></script>
+	<script type='text/javascript' src='/System/Library/WidgetResources/AppleClasses/AppleAnimator.js' charset='utf-8'></script>
+
+	<style type='text/css'>
+	@import "images/mainstyle.css";
+</style>
+
+</head>
+
+<!-- -->
+
+<body onload="initWidget();" id='bodyElement' >
+
+	<input type="button" id="btn" style="position:absolute; top:50%; left:50%" name="answer" value="Show Calculator" onclick="showDiv()" />
+
+	<div id="front" style="position:absolute; top:0px; left:0px; display: none;">
+
+		<!-- Show/ Hide Calculator -->	
+		<script>
+			function showDiv() {
+				var x = document.getElementById('front');
+				if (x.style.display === "none") {
+					x.style.display = "block";
+					btn.value = "Hide Calculator";
+				} else {
+					x.style.display = "none";
+					btn.value = "Show Calculator";
+				}
+			}
+		</script>
+
+		<!-- To make the widget draggable -->
+		<script>
+			$( function() {
+				$( "#front" ).draggable({ containment: "window", scroll: false, cursor: "move"});
+			} );
+		</script>
+
+		<div id='formulaStringSizingDiv' style='position:absolute; top:-100px; white-space:nowrap; display:inline; font-family:Helvetica, Arial, sans-serif; visibility:hidden;'></div>
+
+		<!-- TOP BAR -->
+		<div id='formulaBarContainer'>
+			<div id="formulaBarLeft"></div>
+			<div id="formulaBarMiddle"></div>
+			<div id="formulaBarRight"></div>
+
+			<!-- CLEAR, DELETE BUTTONS -->
+			<img id='deleteButton' src="images/buttons/deletebutton_off.png" alt="Delete">
+			<img id='clearButton' src="images/buttons/clearbutton_off.png" alt="Clear">
+			
+
+			<!-- Variable Quick Look (note this gets positioned underneath the formula div) -->
+			<canvas id='quickLookCanvas' width="250" height="50"></canvas>
+			<div id='quickLookTextDiv'></div>
+			
+			<!-- Answer Div -->
+			<div id="answerDiv">0</div>
+			
+		</div>
+
+		<!-- Formula and Cursor Divs-->
+
+		<textarea id="formulaTextArea" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+		<!-- MAIN BODY -->
+
+		<div id="mainBodyContainer">
+
+			<!-- BODY LEFT/RIGHT SHADOWS -->
+			<div id="bodyLeftShadow"></div>
+			<div id="bodyRightShadow"></div>
+
+			<!-- HISTORY/VARIABLE VIEW -->
+			<div id="historyViewDiv">
+
+				<!-- Variable List -->
+				<div id='variableCacheContainerDiv'> 
+					<div id="variableCacheParentDiv">
+						<div id="variableCacheDiv" class="formulaCacheFont">
+							<div class='variableCacheVariableHeader' style='padding-top:1px;'>Constants</div>
+							<div id='variableCacheConstantsDiv' style='display:block;'></div>
+							<div class='variableCacheVariableHeader'>Auto-Defined</div>
+							<div id='variableCacheAutoDefinedDiv' style='display:block;'></div>
+							<div class='variableCacheVariableHeader'>Defined</div>
+							<div id='variableCacheDefinedDiv' style='display:block;'></div>
+						</div>
+					</div>
+					<div id='variableCacheScrollBar'></div>
+				</div>
+				
+				<!-- History View -->
+				<div id="formulaCacheContainerDiv">
+					<div id="formulaCacheParentDiv">
+						<div id="formulaCacheDiv"></div>
+					</div>
+					<div id="formulaCacheScrollBar"></div>
+				</div>
+				
+				<!-- Divider -->
+				<div id='variableFormulaCacheResizeDiv'>
+					<div id='variableFormulaCacheResizeVerticalBar'></div>
+				</div>
+
+			</div>
+			
+			<!-- KEYPAD VIEW -->
+			<div id="keypadViewDiv">
+
+				<!-- FUNCTION PAD CONTAINER -->
+
+				<div class='keypadLight' style='width:122px; left:0px;'>
+
+					<div id="padButtonDiv1" class="fPButtonContainer fPCol1 fPRow1"><div class='fPShifterSup' style='margin-left:3px;'>x<sup>-1</sup></div></div>
+					<div id="padButtonDiv2" class="fPButtonContainer fPCol2 fPRow1"><div class='fPShifterSup' style='margin-left:2px;'>x<sup>2</sup></div></div>
+					<div id="padButtonDiv3" class="fPButtonContainer fPCol3 fPRow1"><div class='fPShifter'>sqrt</div></div>
+
+					<div id="padButtonDiv4" class="fPButtonContainer fPCol1 fPRow2"><div class='fPShifter'>sin</div></div>
+					<div id="padButtonDiv5" class="fPButtonContainer fPCol2 fPRow2"><div class='fPShifter'>cos</div></div>
+					<div id="padButtonDiv6" class="fPButtonContainer fPCol3 fPRow2"><div class='fPShifter'>tan</div></div>
+
+					<div id="padButtonDiv7" class="fPButtonContainer fPCol1 fPRow3"><div class='fPShifterSup' style='margin-left:4px;'>sin<sup>-1</sup></div></div>
+					<div id="padButtonDiv8" class="fPButtonContainer fPCol2 fPRow3"><div class='fPShifterSup' style='margin-left:4px;'>cos<sup>-1</sup></div></div>
+					<div id="padButtonDiv9" class="fPButtonContainer fPCol3 fPRow3"><div class='fPShifterSup' style='margin-left:4px;'>tan<sup>-1</sup></div></div>
+
+					<div id="padButtonDiv10" class="fPButtonContainer fPCol1 fPRow4"><div class='fPShifterSup'>10<sup>x</sup></div></div>
+					<div id="padButtonDiv11" class="fPButtonContainer fPCol2 fPRow4"><div class='fPShifter'>log</div></div>
+					<div id="padButtonDiv12" class="fPButtonContainer fPCol3 fPRow4"><div class='fPShifter'>ans</div></div>
+
+					<div id="padButtonDiv13" class="fPButtonContainer fPCol1 fPRow5"><div class='fPShifterSup'>e<sup>x</sup></div></div>
+					<div id="padButtonDiv14" class="fPButtonContainer fPCol2 fPRow5"><div class='fPShifter'>ln</div></div>
+					<div id="padButtonDiv15" class="fPButtonContainer fPCol3 fPRow5"><div class='fPShifter'>%</div></div>
+
+				</div>
+
+				<div class='keypadBorder' style='left:122px;'></div>
+				
+				<!-- NUMBER PAD CONTAINER -->
+				
+				<div class='keypadLight' style='width:111px; left:123px;'>
+					
+					<div id="padButtonDiv16" class="nPButtonContainer nPCol1 nPRow1"><div class='nPShifter'>7</div></div>
+					<div id="padButtonDiv17" class="nPButtonContainer nPCol2 nPRow1"><div class='nPShifter'>8</div></div>
+					<div id="padButtonDiv18" class="nPButtonContainer nPCol3 nPRow1"><div class='nPShifter'>9</div></div>
+
+					<div id="padButtonDiv19" class="nPButtonContainer nPCol1 nPRow2"><div class='nPShifter'>4</div></div>
+					<div id="padButtonDiv20" class="nPButtonContainer nPCol2 nPRow2"><div class='nPShifter'>5</div></div>
+					<div id="padButtonDiv21" class="nPButtonContainer nPCol3 nPRow2"><div class='nPShifter'>6</div></div>
+
+					<div id="padButtonDiv22" class="nPButtonContainer nPCol1 nPRow3"><div class='nPShifter'>1</div></div>
+					<div id="padButtonDiv23" class="nPButtonContainer nPCol2 nPRow3"><div class='nPShifter'>2</div></div>
+					<div id="padButtonDiv24" class="nPButtonContainer nPCol3 nPRow3"><div class='nPShifter'>3</div></div>
+
+					<div id="padButtonDiv25" class="nPButtonContainer nPCol1 nPRow4"><div class='nPShifter'>0</div></div>
+					<div id="padButtonDiv26" class="nPButtonContainer nPCol2 nPRow4"><div id='padRadixCharacter' class='nPShifter'>.</div></div>
+					<div id="padButtonDiv27" class="nPButtonContainer nPCol3 nPRow4"><div class='nPShifter'>&#960;</div></div>
+
+				</div>
+
+				<div class='keypadBorder' style='left:234px;' ></div>
+
+				<!-- OPERATOR CONTAINER -->
+				
+				<div class='keypadLight' style='left:235px; width:70px;' >
+
+					<div id="padButtonDiv28" class="oPButtonContainer oPCol1 nPRow1">&#247;</div> <!-- division -->
+					<div id="padButtonDiv29" class="oPButtonContainer oPCol2a nPRow1 oPSmallText"><div style='margin-top:1px;'>(</div></div> <!-- left parethesis -->
+					<div id="padButtonDiv30" class="oPButtonContainer oPCol2b nPRow1 oPSmallText"><div style='margin-top:1px;'>)</div></div> <!-- right parethesis -->
+
+					<div id="padButtonDiv31" class="oPButtonContainer oPCol1 nPRow2">&#215;</div> <!-- multiplication -->
+					<div id="padButtonDiv32" class="oPButtonContainer oPCol2 nPRow2 oPSmallText"><div style='margin-top:2px;'>%</div></div> <!-- percent -->
+
+					<div id="padButtonDiv33" class="oPButtonContainer oPCol1 nPRow3">&#8722;</div> <!-- subtraction -->
+					<div id="padButtonDiv34" class="oPButtonContainer oPCol2 nPRow3"><div style='margin-top:5px;'>&#8963;</div></div> <!-- exponent -->
+
+					<div id="padButtonDiv35" class="oPButtonContainer oPCol1 nPRow4">+</div> <!-- plus -->
+					<div id="padButtonDiv36" class="oPButtonContainer oPCol2 nPRow4">=</div> <!-- equals -->
+
+
+				</div>
+
+			</div>
+
+			<!-- ALERT VIEW CONTAINER -->
+			<div id='alertViewContainer'>
+				<div id='alertViewMessageBody'></div>
+				<div id='alertButtonLeft' class='alertButtonGray'></div>
+				<div id='alertButtonMiddle' class='alertButtonRed'></div>
+				<div id='alertButtonRight' class='alertButtonBlue'></div>
+			</div>
+			
+		</div>
+
+		<!-- BOTTOM BAR -->
+
+		<div id="bottomBarContainer">
+			
+			<!-- BOTTOM BAR BACKGROUNDS -->
+			<div id="bottomBarLeft"></div>
+			<div id="bottomBarMiddle"></div>
+			<div id="bottomBarRight"></div>
+			<div id="bottomBarTopBorder"></div>
+
+			<!-- BOTTOM BAR CONTENT -->
+			<div id="bottomBarNumberFormattingOptionLabel" class="bottomBarComboBoxFont bottomBarPopUpButtonLarge">Float</div>
+			<select id="bottomBarNumberFormattingOption">
+				<option value='1' selected>Float</option>
+				<option value='2'>Scientific</option>
+				<option value='3'>Engineering</option>
+				<option value='4'>Percent</option>
+				<option value='5'>Binary</option>
+				<option value='6'>Octal</option>
+				<option value='7'>Hexadecimal</option>
+			</select>
+			
+			<div id='bottomBarDegreesRadiansOptionLabel' class="bottomBarComboBoxFont bottomBarPopUpButton">Radians</div>
+			<select id="bottomBarDegreesRadiansOption">
+				<option value='1' selected>Radians</option>
+				<option value='0'>Degrees</option>
+			</select>
+
+			<img id='expandButton' src="images/buttons/expandbutton_off.png" alt="Enable or Disable Mini Mode">
+			<img id='keypadHistoryButton' src="images/buttons/historybutton_off.png" alt="Switch between Keypad and History View">
+			<img id='infoButton' src="images/buttons/infobutton_off.png" alt="Widget Info">
+
+			<img id='resizeButton' src='images/buttons/resize.png' alt=''>
+
+
+		</div>
+
+		<div id='pasteHelperDiv' style='position:absolute; display:none;'></div>
+		
+	</div>
+
+	<div id='back' class='widgetBack'>
+
+		<div id='backGeneralButton'></div> <!--left:22px; -->
+		<div id='backFormattingButton'></div> <!--left:111px; -->
+		<!-- <div id='backConstantsButton' style='left:216px; width:80px;'></div> -->
+
+		<div id="backPEMDASLogo">PEMDAS<span class="backVersionNumber">Version 3.1</span></div>
+
+		<div id='supportButton'></div>
+		<div id='doneButton'></div>
+
+
+		<!-- Next are all the containers -->
+
+		<!-- General items -->
+		<div id='backGeneralContainer' class='backContainer' style='display:block;'>
+			
+			<div id='modulusCheckBoxButtonLabel' style='text-align:right; width:186px; position:absolute; left:0px; top:38px;' class='backOptionLabel'>Use % as Modulus:</div>
+			<div id='updatesCheckBoxButtonLabel' style='text-align:right; width:186px; position:absolute; left:0px; top:69px;' class='backOptionLabel'>Check for Updates:</div>
+			<img id='modulusCheckBoxButton' src='images/buttons/checkbox.png' class='checkBoxButton' style='position:absolute; left:188px; top:34px;' alt=''>
+			<img id='updatesCheckBoxButton' src='images/buttons/checkbox.png' class='checkBoxButton' style='position:absolute; left:188px; top:65px;' alt=''>
+			
+			<div id='updateAvailabilityLabel' style='text-align:left; width:170px; position:absolute; left:65px; top:89px;' class='backOptionLabelSmall handCursor'></div>
+
+		</div>
+
+		<!-- Formatting items -->
+		<div id='backFormattingContainer' class='backContainer' style='display:none;'>
+			
+			<div style='position:absolute; top:14px; left:10px; text-align:right; width:162px;' class='backOptionLabel'>Number Display:</div>
+
+			<div id='widgetBackSigfigDecimalComboOptionLabel' class='popUpButtonLarge backOptionLabel'>Auto</div> <!--Note the classname gets overriden in the backviewcontroller file -->
+			<select id="widgetBackSigfigDecimalComboOption">
+				<optgroup label="Auto Formatting">
+					<option value='0' selected>Auto</option>
+				</optgroup>
+				<optgroup label="Limit Decimals Places">
+					<option value='11'>0</option>
+					<option value='12'>1</option>
+					<option value='13'>2</option>
+					<option value='14'>3</option>
+					<option value='15'>4</option>
+					<option value='16'>5</option>
+					<option value='17'>6</option>
+					<option value='18'>7</option>
+					<option value='19'>8</option>
+					<option value='20'>9</option>
+					<option value='21'>10</option>
+				</optgroup>
+				<optgroup label="Limit Significant Figures">
+					<option value='1'>1</option>
+					<option value='2'>2</option>
+					<option value='3'>3</option>
+					<option value='4'>4</option>
+					<option value='5'>5</option>
+					<option value='6'>6</option>
+					<option value='7'>7</option>
+					<option value='8'>8</option>
+					<option value='9'>9</option>
+					<option value='10'>10</option>
+				</optgroup>
+			</select>
+			
+			<div id='thousandsSeparatorsCheckBoxButtonLabel' style='position:absolute; top:40px; left:10px; text-align:right; width:162px;' class='backOptionLabel'>Use Thousands Separators:</div>
+			<img id='thousandsSeparatorsCheckBoxButton' src='images/buttons/checkbox.png' class='checkBoxButton' style='position:absolute; left:173px; top:36px;' alt=''>
+
+			
+			<!-- Thousands Separator Character -->
+			<div style='position:absolute; top:66px; left:10px; text-align:right; width:162px;' class='backOptionLabel'>Thousands Separator:</div>
+			<div id='widgetBackThousandsSeparatorCharacterOptionLabel' class='popUpButton backOptionLabel'></div>
+			<select id="widgetBackThousandsSeparatorCharacterOption">
+				<option value='0' id='widgetBackThousandsSeparatorCharacterComma' selected>,</option>
+				<option value='1'>Space</option>
+				<option value='2'>'</option>
+			</select>
+
+			<!-- Multiplication symbol -->
+			<div style='position:absolute; top:92px; left:10px; text-align:right; width:162px;' class='backOptionLabel'>Multiplication Symbol:</div>
+			<div id='widgetBackMultiplicationSymbolOptionLabel' class='popUpButton backOptionLabel'>*</div>
+			<select id="widgetBackMultiplicationSymbolOption">
+				<option value='0' selected>*</option>
+				<option value='1'>&#8901;</option>
+			</select>
+
+			
+			
+			<div style='position:absolute; top:118px; left:10px; text-align:right; width:162px;' class='backOptionLabel'>Decimal Separator:</div>
+			<div id='widgetBackDecimalSeparatorOptionLabel' class='popUpButton backOptionLabel'>Auto</div>
+			<select id="widgetBackDecimalSeparatorOption">
+				<option value='0' selected>Auto</option>
+				<option value='1'>.</option>
+				<option value='2'>,</option>
+			</select>
+
+		</div>
+		
+	</div>	
+
+	<div id="consoleDiv" style="" class="consolefont"></div>
+
+</body>
+</html>

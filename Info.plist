@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.donkeyentertainment.widget.PEMDAS</string>
+	<key>CFBundleName</key>
+	<string>PEMDAS</string>
+	<key>CFBundleDisplayName</key>
+	<string>PEMDAS</string>
+	<key>CFBundleVersion</key>
+	<string>3.1</string>
+	<key>MainHTML</key>
+	<string>pemdas.html</string>
+	<key>CloseBoxInsetX</key>
+	<integer>10</integer>
+	<key>CloseBoxInsetY</key>
+	<integer>10</integer>
+	<key>AllowNetworkAccess</key>
+	<true/>
+</dict>
+</plist>
